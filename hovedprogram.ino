@@ -5,7 +5,7 @@
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 #define INITIAL_DELAYVAL 50 // Tid (i millisekunder) for å vente mellom pikseler, i inisialisering
 #define DELAYVAL 800 // Tid (i millisekunder) for å vente mellom pikseler, i notifiseringsdans
-#define INTERVALL 12000 // Tiden (i milisekunder) etter det systemet notifiserer brukeren at hun ikkehar beveget seg
+#define INTERVALL_UTEN_AT_NOE_SKJER 12000 // Tiden (i milisekunder) etter det systemet notifiserer brukeren at hun ikkehar beveget seg
 #define UVESENTLIG_VEKT_FORSKJELL 20 // for å stabilisere vektmålinger
 
 #include "HX711.h"
@@ -27,7 +27,7 @@ int antallHentinger = 0; // ganger man har hentet vann (= at vekten er høyere e
 int antallDrikkinger = 0; // ganger man har drukket vann (= at vekten er lavere enn den målt to ganger før)
 int antallPikslerHenting = 0; // antall piksler som skal lyses (og som signaliserer henting)
 int antallPikslerDrikking = 0; // antall piksler som skal lyses (og som signaliserer drikking)
-boolean foersteForandring = false; // vi regner bare med andre forandring, den første er å ta bort glassen
+boolean utAvCoaster = false; // vi regner bare med den annen forandring i vekt, den første er å ta bort glassen, som er ut av Coasteren
 
 void setup() {
 
@@ -54,38 +54,17 @@ void setup() {
 }
 
 void loop() {
-  // her maa vi soerge for at den leser ferdig den nye vekt
-  /* while (nytid - naaTiden < 200) {
-    vekt = scale.get_units(10);
-    nytid=millis();
-  }*/
-  
   vekt = scale.get_units(10);
-  //delay(200);
   visMaalinger('u');
  
   unsigned long naaTiden=millis();
-  if (naaTiden - forrigeTiden > INTERVALL) {
+  if (naaTiden - forrigeTiden > INTERVALL_UTEN_AT_NOE_SKJER) {
     forrigeTiden = naaTiden;
-    //sender paaminnelse
-    for(int i=0; i<NUMPIXELS; i++) { // For hver piksel
-      pixels.setPixelColor(i, pixels.Color(220, 20, 60));
-      pixels.show();   // viser fargene
-      delay(INITIAL_DELAYVAL); // venter litt
-      pixels.clear(); // ingen pixel lyser
-    }
-    //men den skal beholde de forrige piksler som ble fortjent
-    for(int i=0; i<antallPikslerHenting; i++) {
-      pixels.setPixelColor(i,pixels.Color(250,128,114));
-    }
-    for(int i=0; i<antallPikslerDrikking; i++) {
-      pixels.setPixelColor(NUMPIXELS/2+i,pixels.Color(250,128,114));
-    }
-    pixels.show(); // viser igjen pikslene som skal lyse, etter å ha sent påminnelsen
+    senderPaaminnelse();
   }
   
-  if (abs(vekt - forrigeVekt) > 100) {
-    // stabiliserer verdien til vekt
+  if (abs(vekt - forrigeVekt) > 100) { // dette betyr at noe har skjedd
+    // stabiliserer verdien til vekt før den lagres
     nyvekt=scale.get_units(10);
     while (abs(nyvekt - vekt) > UVESENTLIG_VEKT_FORSKJELL) {
       vekt=nyvekt;
@@ -93,36 +72,29 @@ void loop() {
     }
     vekt=nyvekt;
     visMaalinger('i');
-    if (!foersteForandring) {
-      foersteForandring = true;
-      Serial.println("Bytter status... Foerste true");
+    if (!utAvCoaster) {
+      utAvCoaster = true;
+      Serial.println("Bytter status... UtAvCoaster true");
       }
     else {
-      foersteForandring = false;
-      Serial.println("Bytter status... Foerste false");
+      utAvCoaster = false;
+      Serial.println("Bytter status... UtAvCoaster false");
       }
     
-    // man glemmer venting, det betyr: man begynner å telle på nytt
+    // man glemmer venting, det vil si, man begynner å telle på nytt
     forrigeTiden = naaTiden;
 
-    if (vekt - endaForrigeVekt > 50 and !foersteForandring) {
- //   if (vekt - forrigeVekt > 100.0 and !foersteForandring) {
+    if (vekt - endaForrigeVekt > 50 and !utAvCoaster) {
      // har hentet vann
       antallHentinger++;
       Serial.println("Hentet vann...");
-    // man lyser en til lys
-      pixels.setPixelColor(antallPikslerHenting,pixels.Color(250,128,114));
-      pixels.show(); 
-      antallPikslerHenting++;
+      signaliserHenting();
     
-    } else if (endaForrigeVekt - vekt > 50 && !foersteForandring) { 
- //   } else if (forrigeVekt - vekt > 100.0 && !foersteForandring) { 
-      // har drukket vann
+    } else if (endaForrigeVekt - vekt > 50 && !utAvCoaster) { 
+       // har drukket vann
       Serial.println("Drakk vann...");
       antallDrikkinger++;
-      pixels.setPixelColor(NUMPIXELS/2+antallPikslerDrikking,pixels.Color(250,128,114));
-      pixels.show(); 
-      antallPikslerDrikking++;
+      signaliserDrikking();
     }
     endaForrigeVekt=forrigeVekt;
     forrigeVekt=vekt;
@@ -138,4 +110,34 @@ void visMaalinger(char hva){
     Serial.print(" enda forrige: ");
     Serial.println(endaForrigeVekt);
   }
+
+ void senderPaaminnelse(){
+      //sender paaminnelse
+    for(int i=0; i<NUMPIXELS; i++) { // For hver piksel
+      pixels.setPixelColor(i, pixels.Color(220, 20, 60));
+      pixels.show();   // viser fargene
+      delay(INITIAL_DELAYVAL); // venter litt
+      pixels.clear(); // ingen pixel lyser
+    }
+    //men den skal beholde de forrige piksler som ble fortjent
+    for(int i=0; i<antallPikslerHenting; i++) {
+      pixels.setPixelColor(i,pixels.Color(250,128,114));
+    }
+    for(int i=0; i<antallPikslerDrikking; i++) {
+      pixels.setPixelColor(NUMPIXELS/2+i,pixels.Color(250,128,114));
+    }
+    pixels.show(); // viser igjen pikslene som skal lyse, etter å ha sent påminnelsen
  
+ }
+
+void signaliserHenting(){
+      // man lyser en til lys, foreløpig
+      pixels.setPixelColor(antallPikslerHenting,pixels.Color(250,128,114));
+      pixels.show(); 
+      antallPikslerHenting++;
+}
+void signaliserDrikking(){
+      pixels.setPixelColor(NUMPIXELS/2+antallPikslerDrikking,pixels.Color(250,128,114));
+      pixels.show(); 
+      antallPikslerDrikking++;
+}
