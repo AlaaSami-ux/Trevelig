@@ -7,6 +7,7 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 #define DELAYVAL 800 // Tid (i millisekunder) for å vente mellom pikseler, i notifiseringsdans
 #define INTERVALL_UTEN_AT_NOE_SKJER 12000 // Tiden (i milisekunder) etter det systemet notifiserer brukeren at hun ikkehar beveget seg
 #define UVESENTLIG_VEKT_FORSKJELL 20 // for å stabilisere vektmålinger
+#define MANGE_TIMER 120000 // 2880000 ms er 8 timer: etter det uten røring skal systemet gå i dvale
 
 #include "HX711.h"
 #define calibration_factor 781.86 //-7050.0 //This value is obtained using the SparkFun_HX711_Calibration sketch
@@ -16,8 +17,8 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 
 HX711 scale;
 
-
-unsigned long forrigeTiden = 0; // for å måle tiden der det er ingen ting som skjer
+unsigned long forrigeTidenNoeSkjedde; // for å måle tiden for å dvale
+unsigned long forrigeTiden = 0; // for å måle tiden der det er ingen ting som skjer for å minne brukeren
 unsigned long nytid; // for å måle tiden mellom forskjellige vektmålinger
 float vekt = 0;
 float nyvekt = 0; // for å drive med repetert målinger
@@ -28,6 +29,7 @@ int antallDrikkinger = 0; // ganger man har drukket vann (= at vekten er lavere 
 int antallPikslerHenting = 0; // antall piksler som skal lyses (og som signaliserer henting)
 int antallPikslerDrikking = 0; // antall piksler som skal lyses (og som signaliserer drikking)
 boolean utAvCoaster = false; // vi regner bare med den annen forandring i vekt, den første er å ta bort glassen, som er ut av Coasteren
+boolean dvaleModus = true; // systemet sover, og viser igenting
 
 void setup() {
 
@@ -58,12 +60,25 @@ void loop() {
   visMaalinger('u');
  
   unsigned long naaTiden=millis();
-  if (naaTiden - forrigeTiden > INTERVALL_UTEN_AT_NOE_SKJER) {
+  if (naaTiden - forrigeTidenNoeSkjedde > MANGE_TIMER) {
+    dvaleModus=true;
+    ikkeFlereLys();
+  }
+  if (naaTiden - forrigeTiden > INTERVALL_UTEN_AT_NOE_SKJER and !dvaleModus) {
     forrigeTiden = naaTiden;
     senderPaaminnelse();
   }
   
   if (abs(vekt - forrigeVekt) > 100) { // dette betyr at noe har skjedd
+    forrigeTidenNoeSkjedde=naaTiden;
+    if (dvaleModus) {
+      dvaleModus=false;
+      if (forrigeVekt - vekt > 100) { // har man tatt glass fra coasteren for å veke systemet
+        utAvCoaster=false; // det er egentlig det motsatte fordi den toggles senere
+      } else { // eller har man kommet med (ny?) glassen til coasteren for å veke systemet
+        utAvCoaster=true;
+      }
+    }
     // stabiliserer verdien til vekt før den lagres
     nyvekt=scale.get_units(10);
     while (abs(nyvekt - vekt) > UVESENTLIG_VEKT_FORSKJELL) {
@@ -137,7 +152,13 @@ void signaliserHenting(){
       antallPikslerHenting++;
 }
 void signaliserDrikking(){
+      // man lyser en til lys, foreløpig
       pixels.setPixelColor(NUMPIXELS/2+antallPikslerDrikking,pixels.Color(250,128,114));
       pixels.show(); 
       antallPikslerDrikking++;
+}
+void ikkeFlereLys(){
+      pixels.clear(); // ingen pixel lyser
+      pixels.show(); 
+      Serial.println("går i dvale... ");
 }
