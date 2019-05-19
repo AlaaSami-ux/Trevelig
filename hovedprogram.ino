@@ -191,15 +191,24 @@ void ikkeFlereLys(){
 }
 
 void viserTre(){
-         for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
-          strip.setPixelColor(i, pixels.Color(255,0,0)); // her er rød
+  
+     for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
+          if (antallHentinger < 3) {
+            strip.setPixelColor(i, pixels.Color(255,0,0)); // her er rød
+            Serial.println("Treet er rød");
+          } else if (antallHentinger < 6) {
+            strip.setPixelColor(i, pixels.Color(255,165,0)); // her er gul
+            Serial.println("Treet er gul");
+          } else {
+            strip.setPixelColor(i, pixels.Color(0, 150, 0)); // her er grønn
+            Serial.println("Treet er grønn");
+          }
           strip.show();   // Vise
           delay(VENTETID_VISE_TRE); // Vente
        }
        strip.clear(); 
        strip.show();
-       Serial.println("Treet rød");
-
+    
 }
 /*
 void viserTre(){
@@ -223,7 +232,6 @@ void viserTre(){
        }
        strip.clear(); 
        strip.show();
-       Serial.println("Treet er gul");
     } else {
        // treet lyser rød
        for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
