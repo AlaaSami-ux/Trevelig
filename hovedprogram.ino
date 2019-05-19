@@ -9,20 +9,9 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 #define UVESENTLIG_VEKT_FORSKJELL 20 // for å stabilisere vektmålinger
 #define MANGE_TIMER 120000 // 2880000 ms er 8 timer: etter det uten røring skal systemet gå i dvale
 
-/*
-#include <FastLED.h>
-#define LED_PIN     5 // for treet
-#define NUM_LEDS    14 // foreløpig to piksler per node
-#define BRIGHTNESS  64
-#define LED_TYPE    WS2811
-#define COLOR_ORDER GRB
-CRGB leds[NUM_LEDS];
-CRGBPalette16 currentPalette;
-TBlendType    currentBlending;
-/*
-extern CRGBPalette16 myRedWhiteBluePalette;
-extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
-*/
+#define NUMPIXELS_TRE 14 //for treet
+#define VENTETID_VISE_TRE 400 // hvor lenge skal den vise treet
+Adafruit_NeoPixel strip(NUMPIXELS_TRE, 5, NEO_GRB + NEO_KHZ800);
 
 #include "HX711.h" // for vektsensor
 #define calibration_factor 781.86 //-7050.0 //This value is obtained using the SparkFun_HX711_Calibration sketch
@@ -71,17 +60,20 @@ void setup() {
   endaForrigeVekt = forrigeVekt;
   forrigeTiden=millis();
 
-/*
 // initialiserer LED stripene
-  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection( TypicalLEDStrip );
-  FastLED.setBrightness(  BRIGHTNESS );
-    
-  currentPalette = RainbowColors_p;
-  currentBlending = LINEARBLEND;
-      
+  strip.begin();
+  strip.clear(); 
 
-  FillLEDsFromPaletteColors(0);
-  FastLED.show(); */
+// viser gul tre
+  for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
+    strip.setPixelColor(i, pixels.Color(255,165,0));// gull tre
+    strip.show();   // Vise
+    delay(VENTETID_VISE_TRE); // Vente
+  }
+   strip.clear(); 
+   strip.show();
+  
+// initialiserer serial port
   Serial.begin(9600);
 }
 
@@ -197,29 +189,52 @@ void ikkeFlereLys(){
       antallPikslerHenting=0; 
       Serial.println("går i dvale... ");
 }
+
+void viserTre(){
+         for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
+          strip.setPixelColor(i, pixels.Color(255,0,0)); // her er rød
+          strip.show();   // Vise
+          delay(VENTETID_VISE_TRE); // Vente
+       }
+       strip.clear(); 
+       strip.show();
+       Serial.println("Treet rød");
+
+}
+/*
 void viserTre(){
     // her ska den lyse treet basert på "poeng" man har oppnåd forrige dag
     if (antallHentinger > 6) {
-      //treet skal lyse grønn
-       Serial.println("Treet grønn");
+      // treet lyser grønn
+       for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
+          strip.setPixelColor(i, pixels.Color(0, 150, 0)); // her er grønn
+          strip.show();   // Vise
+          delay(VENTETID_VISE_TRE); // Vente
+       }
+       strip.clear(); 
+       strip.show();
+       Serial.println("Treet er grønn");
     } else if (antallHentinger > 3) {
-      // treet skal lyse gul
-       Serial.println("Treet gul");
+       // treet lyser gul
+       for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
+          strip.setPixelColor(i, pixels.Color(255,165,0)); // her er gul
+          strip.show();   // Vise
+          delay(VENTETID_VISE_TRE); // Vente
+       }
+       strip.clear(); 
+       strip.show();
+       Serial.println("Treet er gul");
     } else {
-      //treet ska lyse rød
-      Serial.println("Treet rød");
+       // treet lyser rød
+       for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
+          strip.setPixelColor(i, pixels.Color(255,0,0)); // her er rød
+          strip.show();   // Vise
+          delay(VENTETID_VISE_TRE); // Vente
+       }
+       strip.clear(); 
+       strip.show();
+       Serial.println("Treet rød");
     }
-}
-/*
-// fra https://randomnerdtutorials.com/guide-for-ws2812b-addressable-rgb-led-strip-with-arduino/
-void FillLEDsFromPaletteColors( uint8_t colorIndex)
-{
-    uint8_t brightness = 255;
-    
-    for( int i = 0; i < NUM_LEDS; i++) {
-        leds[i] = ColorFromPalette( currentPalette, colorIndex, brightness, currentBlending);
-        colorIndex += 3;
-    }
-}
 
+}
 */
