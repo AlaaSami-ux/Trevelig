@@ -9,11 +9,21 @@ Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 #define UVESENTLIG_VEKT_FORSKJELL 20 // for å stabilisere vektmålinger
 #define MANGE_TIMER 120000 // 2880000 ms er 8 timer: etter det uten røring skal systemet gå i dvale
 
+// inpirert av https://www.tweaking4all.com/hardware/arduino/arduino-ws2812-led/
+// fargerkodene tatt fra https://www.rapidtables.com/web/color/RGB_Color.html
 #define NUMPIXELS_TRE 14 //for treet
+#define PIN_TRE 5
 #define VENTETID_VISE_TRE 400 // hvor lenge skal den vise treet
-Adafruit_NeoPixel strip(NUMPIXELS_TRE, 5, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip(NUMPIXELS_TRE, PIN_TRE, NEO_GRB + NEO_KHZ800);
+
+#define NUMPIXELS_RING_TRE 12 // for ringen på treet
+#define PIN_RING_TRE 6 
+#define VENTETID_FOR_DRIKKING 400 // ? hvor lenge skal den vise at man har drukket (tilbakemelding)
+Adafruit_NeoPixel pixels2(NUMPIXELS_RING_TRE, PIN_RING_TRE, NEO_GRB + NEO_KHZ800);
 
 #include "HX711.h" // for vektsensor
+// vi kalibrerte ved å gjenbruke kalibreringsprogram på https://learn.sparkfun.com/tutorials/load-cell-amplifier-hx711-breakout-hookup-guide#load-cell-setup
+// vi også inspirerte oss av den andre program på samme side som heter "SparkFun_HX711_Example.ino"
 #define calibration_factor 781.86 //-7050.0 //This value is obtained using the SparkFun_HX711_Calibration sketch
 
 #define DOUT  3 // for vektsensor
@@ -23,7 +33,7 @@ HX711 scale;
 
 unsigned long forrigeTidenNoeSkjedde; // for å måle tiden for å dvale
 unsigned long forrigeTiden = 0; // for å måle tiden der det er ingen ting som skjer for å minne brukeren
-unsigned long nytid; // for å måle tiden mellom forskjellige vektmålinger
+unsigned long nytid; // for å måle tiden mellom forskjellige vektmålinger for å stabilisere verdien
 float vekt = 0;
 float nyvekt = 0; // for å drive med repetert målinger
 float forrigeVekt = 0; // forrige målt vekten
@@ -31,16 +41,17 @@ float endaForrigeVekt = 0; // vekten før forrige målt vekten
 int antallHentinger = 0; // ganger man har hentet vann (= at vekten er høyere enn den målt to ganger før)
 int antallDrikkinger = 0; // ganger man har drukket vann (= at vekten er lavere enn den målt to ganger før)
 int antallPikslerHenting = 0; // antall piksler som skal lyses (og som signaliserer henting)
-int antallPikslerDrikking = 0; // antall piksler som skal lyses (og som signaliserer drikking)
+int antallPikslerDrikking = 0; // antall piksler som skal lyses (og som signaliserer drikking) TRENGER IKKE LENGER
 boolean utAvCoaster = false; // vi regner bare med den annen forandring i vekt, den første er å ta bort glassen, som er ut av Coasteren
 boolean dvaleModus = true; // systemet sover, og viser igenting
 static uint8_t startIndex = 0; // for LEDstrip
 
+
 void setup() {
 
-  //viserGulTre();
-  pixels.begin(); // inisialiserer ringen
+  pixels.begin(); // inisialiserer ringen på coaster
   pixels.clear(); // ingen pixel lyser
+  // koden her er bare for å vise at den begynner SKAL KOMMENTERES ETTERPÅ
   pixels.setPixelColor(0,pixels.Color(250,128,114)); // blå 
   pixels.show(); 
   delay(1000);
@@ -64,7 +75,7 @@ void setup() {
   strip.begin();
   strip.clear(); 
 
-// viser gul tre
+// viser gul tre TRENGER VI DETTE? Å BEGYNNE MED GUL?
   for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
     strip.setPixelColor(i, pixels.Color(255,165,0));// gull tre
     strip.show();   // Vise
@@ -72,6 +83,15 @@ void setup() {
   }
    strip.clear(); 
    strip.show();
+
+// initialiserer ring på treet
+  pixels2.begin(); // inisialiserer ringen på treet
+  pixels2.clear(); // ingen pixel lyser
+  pixels2.setPixelColor(0,pixels.Color(250,128,114)); // blå 
+  pixels2.show();
+  delay(500);
+  pixels2.clear(); // ingen pixel lyser
+  pixels2.show();
   
 // initialiserer serial port
   Serial.begin(9600);
@@ -151,7 +171,7 @@ void visMaalinger(char hva){
     Serial.println(endaForrigeVekt);
   }
 
- void senderPaaminnelse(){
+void senderPaaminnelse(){
       //sender paaminnelse
     for(int i=0; i<NUMPIXELS; i++) { // For hver piksel
       pixels.setPixelColor(i, pixels.Color(0, 255, 0)); //grønn
@@ -159,6 +179,8 @@ void visMaalinger(char hva){
       delay(INITIAL_DELAYVAL); // venter litt
       pixels.clear(); // ingen pixel lyser
     }
+    // det som følger var bare brukt når man signaliserte på coaster, kan slettes
+    /*
     //men den skal beholde de forrige piksler som ble fortjent
     for(int i=0; i<antallPikslerHenting; i++) {
       pixels.setPixelColor(i,pixels.Color(250,128,114));
@@ -167,19 +189,20 @@ void visMaalinger(char hva){
       pixels.setPixelColor(NUMPIXELS/2+i,pixels.Color(205,51,51));
     }
     pixels.show(); // viser igjen pikslene som skal lyse, etter å ha sent påminnelsen
- 
+ */
  }
 
 void signaliserHenting(){
       // man lyser en til lys, foreløpig
-      pixels.setPixelColor(antallPikslerHenting,pixels.Color(250,128,114));
-      pixels.show(); 
+      strip.setPixelColor(antallPikslerHenting,pixels.Color(0,150,0)); // skal være grønn
+      strip.show(); 
       antallPikslerHenting++;
 }
 void signaliserDrikking(){
       // man lyser en til lys, foreløpig
-      pixels.setPixelColor(NUMPIXELS/2+antallPikslerDrikking,pixels.Color(205,38,38));
-      pixels.show(); 
+      strip.setPixelColor(14-antallPikslerDrikking,pixels.Color(250,128,114)); // skal være rød?
+      //pixels.setPixelColor(NUMPIXELS/2+antallPikslerDrikking,pixels.Color(205,38,38));
+      strip.show(); 
       antallPikslerDrikking++;
 }
 void ikkeFlereLys(){
@@ -187,6 +210,8 @@ void ikkeFlereLys(){
       pixels.show(); 
       antallPikslerDrikking=0;
       antallPikslerHenting=0; 
+      strip.clear();
+      strip.show();
       Serial.println("går i dvale... ");
 }
 
@@ -210,39 +235,3 @@ void viserTre(){
        strip.show();
     
 }
-/*
-void viserTre(){
-    // her ska den lyse treet basert på "poeng" man har oppnåd forrige dag
-    if (antallHentinger > 6) {
-      // treet lyser grønn
-       for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
-          strip.setPixelColor(i, pixels.Color(0, 150, 0)); // her er grønn
-          strip.show();   // Vise
-          delay(VENTETID_VISE_TRE); // Vente
-       }
-       strip.clear(); 
-       strip.show();
-       Serial.println("Treet er grønn");
-    } else if (antallHentinger > 3) {
-       // treet lyser gul
-       for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
-          strip.setPixelColor(i, pixels.Color(255,165,0)); // her er gul
-          strip.show();   // Vise
-          delay(VENTETID_VISE_TRE); // Vente
-       }
-       strip.clear(); 
-       strip.show();
-    } else {
-       // treet lyser rød
-       for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
-          strip.setPixelColor(i, pixels.Color(255,0,0)); // her er rød
-          strip.show();   // Vise
-          delay(VENTETID_VISE_TRE); // Vente
-       }
-       strip.clear(); 
-       strip.show();
-       Serial.println("Treet rød");
-    }
-
-}
-*/
