@@ -179,6 +179,7 @@ void senderPaaminnelse(){
       delay(INITIAL_DELAYVAL); // venter litt
       pixels.clear(); // ingen pixel lyser
     }
+    pixels.show();
     // det som følger var bare brukt når man signaliserte på coaster, kan slettes
     /*
     //men den skal beholde de forrige piksler som ble fortjent
