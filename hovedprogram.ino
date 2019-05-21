@@ -54,7 +54,7 @@ void setup() {
 
   pixels.begin(); // inisialiserer ringen på coaster
   pixels.clear(); // ingen pixel lyser
-  
+  /*
   // koden her er bare for å vise at den begynner SKAL KOMMENTERES ETTERPÅ
   pixels.setPixelColor(0,pixels.Color(250,128,114)); // blå 
   pixels.show(); 
@@ -67,7 +67,7 @@ void setup() {
   delay(1000);
   pixels.clear(); // ingen pixel lyser
   pixels.show(); 
-
+*/
   scale.begin(DOUT, CLK); // inisialiserer vektmaaler
   scale.set_scale(calibration_factor); 
   vekt = scale.get_units();
@@ -79,7 +79,7 @@ void setup() {
   strip.begin();
   strip.clear(); 
 
-
+/*
 // viser gul tre TRENGER VI DETTE? Å BEGYNNE MED GUL?
   for(int i=0; i<NUMPIXELS_TRE; i++) { // for hver piksel
     strip.setPixelColor(i, pixels.Color(255,165,0));// gull tre
@@ -88,7 +88,7 @@ void setup() {
   }
    delay(VENTETID_VISE_TRE); // Vente 
    strip.clear(); 
-   
+   */
    strip.show();
 
 // initialiserer ring på treet
