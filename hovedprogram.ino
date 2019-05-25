@@ -48,7 +48,9 @@ boolean dvaleModus = false; // systemet sover, og viser igenting
 boolean straffet = false; // viser om brukeren ble straffet, for ikke å straffe en gang til
 int antallPaaminnelser = 0; // antall påminnelser som systemet ga
 unsigned long intervallPaaminnelser; // hvor mye skal systemet vente før den sende påminnelser, den varierer fra første til andre
-int farge[5]; // for å printe alle farger fra forrige dager på potte
+int farge1[5]; // for å printe alle farger fra forrige dager på potte
+int farge2[5]; // de har 3 deler
+int farge3[5];
 
 void setup() {
 
@@ -105,9 +107,11 @@ void setup() {
   
   intervallPaaminnelser=INTERVALL_UTEN_AT_NOE_SKJER;
   for(int i=0; i<5; i++) { // For hver dag
-    farge[i]=0;
+   farge1[i]=0;
+   farge2[i]=0;
+   farge3[i]=0;
   }
-  
+  skriver_farger_pott();
 }
 
 void loop() {
@@ -120,7 +124,9 @@ void loop() {
     ikkeFlereLys();
     straffet=false;
     for(int i=0; i<4; i++) { // For hver dag
-      farge[i]=farge[i+1];
+      farge1[i]=farge1[i+1];
+      farge2[i]=farge2[i+1];
+      farge3[i]=farge3[i+1];
     }
   }
   if (naaTiden - forrigeTiden > intervallPaaminnelser and !dvaleModus and !straffet) {
@@ -217,7 +223,7 @@ void senderPaaminnelse(){
 
 void signaliserHenting(){
       // man lyser en til lys, foreløpig
-      if (antallPikslerHenting < 7) {  // lyser på tre, små noder
+      if (antallPikslerHenting < 6) {  // lyser på tre, små noder
         strip.setPixelColor(antallPikslerHenting,pixels.Color(0,150,0)); // skal være grønn
         strip.show(); 
         antallPikslerHenting++;
@@ -261,15 +267,15 @@ void viserTre(){
           if (antallHentinger < 3) {
             strip.setPixelColor(i, pixels.Color(255,0,0)); // her er rød
             Serial.println("Treet er rød");
-            farge[4]=3;
+            farge1[4]=255; farge2[4]=0; farge3[4]=0;
           } else if (antallHentinger < 6) {
             strip.setPixelColor(i, pixels.Color(255,165,0)); // her er gul
             Serial.println("Treet er gul");
-            farge[4]=2;
+            farge1[4]=255; farge2[4]=165; farge3[4]=0;
           } else {
             strip.setPixelColor(i, pixels.Color(0, 150, 0)); // her er grønn
             Serial.println("Treet er grønn");
-            farge[4]=1;
+            farge1[4]=0; farge2[4]=150; farge3[4]=0;
           }
           strip.show();   // Vise
           delay(20);
@@ -292,8 +298,9 @@ void straffTre() {
 void skriver_farger_pott() {
   // lyser 5 lys som viser det man ha beveget seg de forrige fem dager
   for(int i=0; i<5; i++) { // For hver dag
-     strip.setPixelColor(13-i,pixels.Color(255,0,0));
-     
+     strip.setPixelColor(11-i,pixels.Color(farge1[i],farge2[i],farge3[i]));
+     //pixels2.setPixelColor(i,pixels.Color(farge1[i],farge2[i],farge3[i]));
     }
-  strip.show();
+    strip.show();
+    //pixels2.show();
 }
